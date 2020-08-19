@@ -1,4 +1,4 @@
-package glg
+package glgf
 
 import (
 	"sync"
