@@ -1,3 +1,26 @@
+// MIT License
+//
+// Copyright (c) 2019 kpango (Yusuke Kato)
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+// Package glg can quickly output that are colored and leveled logs with simple syntax
 package glgf
 
 import (
@@ -1068,57 +1091,6 @@ func FailFunc(f func() string) error {
 		return glg.out(FAIL, "%s", f())
 	}
 	return nil
-}
-
-// Fatal outputs Failed log and exit program
-func (g *Glg) Fatal(val ...interface{}) {
-	err := g.out(FATAL, g.blankFormat(len(val)), val...)
-	if err != nil {
-		err = g.Error(err.Error())
-		if err != nil {
-			panic(err)
-		}
-	}
-	exit(1)
-}
-
-// Fatalln outputs line fixed Failed log and exit program
-func (g *Glg) Fatalln(val ...interface{}) {
-	err := g.out(FATAL, g.blankFormat(len(val)), val...)
-	if err != nil {
-		err = g.Error(err.Error())
-		if err != nil {
-			panic(err)
-		}
-	}
-	exit(1)
-}
-
-// Fatalf outputs formatted Failed log and exit program
-func (g *Glg) Fatalf(format string, val ...interface{}) {
-	err := g.out(FATAL, format, val...)
-	if err != nil {
-		err = g.Error(err.Error())
-		if err != nil {
-			panic(err)
-		}
-	}
-	exit(1)
-}
-
-// Fatal outputs Failed log and exit program
-func Fatal(val ...interface{}) {
-	glg.Fatal(val...)
-}
-
-// Fatalf outputs formatted Failed log and exit program
-func Fatalf(format string, val ...interface{}) {
-	glg.Fatalf(format, val...)
-}
-
-// Fatalln outputs line fixed Failed log and exit program
-func Fatalln(val ...interface{}) {
-	glg.Fatalln(val...)
 }
 
 // ReplaceExitFunc replaces exit function.
