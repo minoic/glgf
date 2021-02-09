@@ -92,8 +92,6 @@ const (
 	ERR
 	// FAIL is failed log level
 	FAIL
-	// FATAL is fatal log level
-	FATAL
 
 	// NONE is disable Logging
 	NONE MODE = iota
@@ -162,8 +160,6 @@ func (l LEVEL) String() string {
 		return " ERR"
 	case FAIL:
 		return "FAIL"
-	case FATAL:
-		return "FATAL"
 	}
 	return ""
 }
@@ -201,7 +197,7 @@ func New() *Glg {
 		},
 	}
 
-	atomic.StoreUint32(g.levelCounter, uint32(FATAL))
+	atomic.StoreUint32(g.levelCounter, uint32(FAIL))
 
 	for lev, log := range map[LEVEL]*logger{
 		// standard out
@@ -249,12 +245,6 @@ func New() *Glg {
 			mode:    STD,
 		},
 		FAIL: {
-			std:     os.Stderr,
-			color:   Red,
-			isColor: true,
-			mode:    STD,
-		},
-		FATAL: {
 			std:     os.Stderr,
 			color:   Red,
 			isColor: true,
@@ -604,15 +594,7 @@ func (g *Glg) HTTPLoggerFunc(name string, hf http.HandlerFunc) http.Handler {
 
 		start -= fastime.UnixNanoNow()
 
-		err := g.Logf("Method: %s\tURI: %s\tName: %s\tTime: %s",
-			r.Method, r.RequestURI, name, (*(*time.Duration)(unsafe.Pointer(&start))).String())
-
-		if err != nil {
-			err = g.Error(err)
-			if err != nil {
-				fmt.Println(err)
-			}
-		}
+		g.Logf("Method: %s\tURI: %s\tName: %s\tTime: %s", r.Method, r.RequestURI, name, (*(*time.Duration)(&start)).String())
 	})
 }
 
@@ -681,10 +663,10 @@ func White(str string) string {
 	return "\033[97m" + str + "\033[39m"
 }
 
-func (g *Glg) out(level LEVEL, format string, val ...interface{}) error {
+func (g *Glg) out(level LEVEL, format string, val ...interface{}) {
 	log, ok := g.logger.Load(level)
 	if !ok {
-		return fmt.Errorf("error:\tLog Level %s Not Found", level)
+		fmt.Printf("error:\tLog Level %s Not Found\n", level)
 	}
 
 	if g.enableJSON {
@@ -697,7 +679,7 @@ func (g *Glg) out(level LEVEL, format string, val ...interface{}) error {
 		case writeBoth, writeColorBoth:
 			w = io.MultiWriter(log.std, log.writer)
 		default:
-			return nil
+			return
 		}
 		var detail interface{}
 		if format != "" {
@@ -705,7 +687,7 @@ func (g *Glg) out(level LEVEL, format string, val ...interface{}) error {
 		} else {
 			detail = val
 		}
-		return jsoniter.NewEncoder(w).Encode(jsonFormat{
+		jsoniter.NewEncoder(w).Encode(jsonFormat{
 			Date:   fastime.Now(),
 			Level:  level.String(),
 			Detail: detail,
@@ -753,344 +735,342 @@ func (g *Glg) out(level LEVEL, format string, val ...interface{}) error {
 	}
 	b.Reset()
 	g.buffer.Put(b)
-
-	return err
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 // Log writes std log event
-func (g *Glg) Log(val ...interface{}) error {
-	return g.out(LOG, g.blankFormat(len(val)), val...)
+func (g *Glg) Log(val ...interface{}) {
+	g.out(LOG, g.blankFormat(len(val)), val...)
 }
 
 // Logf writes std log event with format
-func (g *Glg) Logf(format string, val ...interface{}) error {
-	return g.out(LOG, format, val...)
+func (g *Glg) Logf(format string, val ...interface{}) {
+	g.out(LOG, format, val...)
 }
 
 // LogFunc outputs Log level log returned from the function
-func (g *Glg) LogFunc(f func() string) error {
+func (g *Glg) LogFunc(f func() string) {
 	if g.isModeEnable(LOG) {
-		return g.out(LOG, "%s", f())
+		g.out(LOG, "%s", f())
 	}
-	return nil
 }
 
 // Log writes std log event
-func Log(val ...interface{}) error {
-	return glg.out(LOG, glg.blankFormat(len(val)), val...)
+func Log(val ...interface{}) {
+	glg.out(LOG, glg.blankFormat(len(val)), val...)
 }
 
 // Logf writes std log event with format
-func Logf(format string, val ...interface{}) error {
-	return glg.out(LOG, format, val...)
+func Logf(format string, val ...interface{}) {
+	glg.out(LOG, format, val...)
 }
 
-// LogFunc outputs Log level log returned from the function
-func LogFunc(f func() string) error {
+// LogFunc outputs Log level log ed from the function
+func LogFunc(f func() string) {
 	if isModeEnable(LOG) {
-		return glg.out(LOG, "%s", f())
+		glg.out(LOG, "%s", f())
 	}
-	return nil
 }
 
 // Info outputs Info level log
-func (g *Glg) Info(val ...interface{}) error {
-	return g.out(INFO, g.blankFormat(len(val)), val...)
+func (g *Glg) Info(val ...interface{}) {
+	g.out(INFO, g.blankFormat(len(val)), val...)
 }
 
 // Infof outputs formatted Info level log
-func (g *Glg) Infof(format string, val ...interface{}) error {
-	return g.out(INFO, format, val...)
+func (g *Glg) Infof(format string, val ...interface{}) {
+	g.out(INFO, format, val...)
 }
 
 // InfoFunc outputs Info level log returned from the function
-func (g *Glg) InfoFunc(f func() string) error {
+func (g *Glg) InfoFunc(f func() string) {
 	if g.isModeEnable(INFO) {
-		return g.out(INFO, "%s", f())
+		g.out(INFO, "%s", f())
 	}
-	return nil
 }
 
 // Info outputs Info level log
-func Info(val ...interface{}) error {
-	return glg.out(INFO, glg.blankFormat(len(val)), val...)
+func Info(val ...interface{}) {
+	glg.out(INFO, glg.blankFormat(len(val)), val...)
 }
 
 // Infof outputs formatted Info level log
-func Infof(format string, val ...interface{}) error {
-	return glg.out(INFO, format, val...)
+func Infof(format string, val ...interface{}) {
+	glg.out(INFO, format, val...)
 }
 
 // InfoFunc outputs Info level log returned from the function
-func InfoFunc(f func() string) error {
+func InfoFunc(f func() string) {
 	if isModeEnable(INFO) {
-		return glg.out(INFO, "%s", f())
+		glg.out(INFO, "%s", f())
 	}
-	return nil
+
 }
 
 // Success outputs Success level log
-func (g *Glg) Success(val ...interface{}) error {
-	return g.out(OK, g.blankFormat(len(val)), val...)
+func (g *Glg) Success(val ...interface{}) {
+	g.out(OK, g.blankFormat(len(val)), val...)
 }
 
 // Successf outputs formatted Success level log
-func (g *Glg) Successf(format string, val ...interface{}) error {
-	return g.out(OK, format, val...)
+func (g *Glg) Successf(format string, val ...interface{}) {
+	g.out(OK, format, val...)
 }
 
 // SuccessFunc outputs Success level log returned from the function
-func (g *Glg) SuccessFunc(f func() string) error {
+func (g *Glg) SuccessFunc(f func() string) {
 	if g.isModeEnable(OK) {
-		return g.out(OK, "%s", f())
+		g.out(OK, "%s", f())
 	}
-	return nil
+
 }
 
 // Success outputs Success level log
-func Success(val ...interface{}) error {
-	return glg.out(OK, glg.blankFormat(len(val)), val...)
+func Success(val ...interface{}) {
+	glg.out(OK, glg.blankFormat(len(val)), val...)
 }
 
 // Successf outputs formatted Success level log
-func Successf(format string, val ...interface{}) error {
-	return glg.out(OK, format, val...)
+func Successf(format string, val ...interface{}) {
+	glg.out(OK, format, val...)
 }
 
 // SuccessFunc outputs Success level log returned from the function
-func SuccessFunc(f func() string) error {
+func SuccessFunc(f func() string) {
 	if isModeEnable(OK) {
-		return glg.out(OK, "%s", f())
+		glg.out(OK, "%s", f())
 	}
-	return nil
+
 }
 
 // Debug outputs Debug level log
-func (g *Glg) Debug(val ...interface{}) error {
-	return g.out(DEBG, g.blankFormat(len(val)), val...)
+func (g *Glg) Debug(val ...interface{}) {
+	g.out(DEBG, g.blankFormat(len(val)), val...)
 }
 
 // Debugf outputs formatted Debug level log
-func (g *Glg) Debugf(format string, val ...interface{}) error {
-	return g.out(DEBG, format, val...)
+func (g *Glg) Debugf(format string, val ...interface{}) {
+	g.out(DEBG, format, val...)
 }
 
 // DebugFunc outputs Debug level log returned from the function
-func (g *Glg) DebugFunc(f func() string) error {
+func (g *Glg) DebugFunc(f func() string) {
 	if g.isModeEnable(DEBG) {
-		return g.out(DEBG, "%s", f())
+		g.out(DEBG, "%s", f())
 	}
-	return nil
+
 }
 
 // Debug outputs Debug level log
-func Debug(val ...interface{}) error {
-	return glg.out(DEBG, glg.blankFormat(len(val)), val...)
+func Debug(val ...interface{}) {
+	glg.out(DEBG, glg.blankFormat(len(val)), val...)
 }
 
 // Debugf outputs formatted Debug level log
-func Debugf(format string, val ...interface{}) error {
-	return glg.out(DEBG, format, val...)
+func Debugf(format string, val ...interface{}) {
+	glg.out(DEBG, format, val...)
 }
 
 // DebugFunc outputs Debug level log returned from the function
-func DebugFunc(f func() string) error {
+func DebugFunc(f func() string) {
 	if isModeEnable(DEBG) {
-		return glg.out(DEBG, "%s", f())
+		glg.out(DEBG, "%s", f())
 	}
-	return nil
+
 }
 
 // Warn outputs Warn level log
-func (g *Glg) Warn(val ...interface{}) error {
-	return g.out(WARN, g.blankFormat(len(val)), val...)
+func (g *Glg) Warn(val ...interface{}) {
+	g.out(WARN, g.blankFormat(len(val)), val...)
 }
 
 // Warnf outputs formatted Warn level log
-func (g *Glg) Warnf(format string, val ...interface{}) error {
-	return g.out(WARN, format, val...)
+func (g *Glg) Warnf(format string, val ...interface{}) {
+	g.out(WARN, format, val...)
 }
 
 // WarnFunc outputs Warn level log returned from the function
-func (g *Glg) WarnFunc(f func() string) error {
+func (g *Glg) WarnFunc(f func() string) {
 	if g.isModeEnable(WARN) {
-		return g.out(WARN, "%s", f())
+		g.out(WARN, "%s", f())
 	}
-	return nil
+
 }
 
 // Warn outputs Warn level log
-func Warn(val ...interface{}) error {
-	return glg.out(WARN, glg.blankFormat(len(val)), val...)
+func Warn(val ...interface{}) {
+	glg.out(WARN, glg.blankFormat(len(val)), val...)
 }
 
 // Warnf outputs formatted Warn level log
-func Warnf(format string, val ...interface{}) error {
-	return glg.out(WARN, format, val...)
+func Warnf(format string, val ...interface{}) {
+	glg.out(WARN, format, val...)
 }
 
 // WarnFunc outputs Warn level log returned from the function
-func WarnFunc(f func() string) error {
+func WarnFunc(f func() string) {
 	if isModeEnable(WARN) {
-		return glg.out(WARN, "%s", f())
+		glg.out(WARN, "%s", f())
 	}
-	return nil
+
 }
 
 // CustomLog outputs custom level log
-func (g *Glg) CustomLog(level string, val ...interface{}) error {
-	return g.out(g.TagStringToLevel(level), g.blankFormat(len(val)), val...)
+func (g *Glg) CustomLog(level string, val ...interface{}) {
+	g.out(g.TagStringToLevel(level), g.blankFormat(len(val)), val...)
 }
 
 // CustomLogf outputs formatted custom level log
-func (g *Glg) CustomLogf(level string, format string, val ...interface{}) error {
-	return g.out(g.TagStringToLevel(level), format, val...)
+func (g *Glg) CustomLogf(level string, format string, val ...interface{}) {
+	g.out(g.TagStringToLevel(level), format, val...)
 }
 
 // CustomLogFunc outputs custom level log returned from the function
-func (g *Glg) CustomLogFunc(level string, f func() string) error {
+func (g *Glg) CustomLogFunc(level string, f func() string) {
 	lv := g.TagStringToLevel(level)
 	if g.isModeEnable(lv) {
-		return g.out(lv, "%s", f())
+		g.out(lv, "%s", f())
 	}
-	return nil
+
 }
 
 // CustomLog outputs custom level log
-func CustomLog(level string, val ...interface{}) error {
-	return glg.out(glg.TagStringToLevel(level), glg.blankFormat(len(val)), val...)
+func CustomLog(level string, val ...interface{}) {
+	glg.out(glg.TagStringToLevel(level), glg.blankFormat(len(val)), val...)
 }
 
 // CustomLogf outputs formatted custom level log
-func CustomLogf(level string, format string, val ...interface{}) error {
-	return glg.out(glg.TagStringToLevel(level), format, val...)
+func CustomLogf(level string, format string, val ...interface{}) {
+	glg.out(glg.TagStringToLevel(level), format, val...)
 }
 
 // CustomLogFunc outputs custom level log returned from the function
-func CustomLogFunc(level string, f func() string) error {
+func CustomLogFunc(level string, f func() string) {
 	lv := TagStringToLevel(level)
 	if isModeEnable(lv) {
-		return glg.out(lv, "%s", f())
+		glg.out(lv, "%s", f())
 	}
-	return nil
+
 }
 
 // Print outputs Print log
-func (g *Glg) Print(val ...interface{}) error {
-	return g.out(PRINT, g.blankFormat(len(val)), val...)
+func (g *Glg) Print(val ...interface{}) {
+	g.out(PRINT, g.blankFormat(len(val)), val...)
 }
 
 // Println outputs fixed line Print log
-func (g *Glg) Println(val ...interface{}) error {
-	return g.out(PRINT, g.blankFormat(len(val)), val...)
+func (g *Glg) Println(val ...interface{}) {
+	g.out(PRINT, g.blankFormat(len(val)), val...)
 }
 
 // Printf outputs formatted Print log
-func (g *Glg) Printf(format string, val ...interface{}) error {
-	return g.out(PRINT, format, val...)
+func (g *Glg) Printf(format string, val ...interface{}) {
+	g.out(PRINT, format, val...)
 }
 
 // PrintFunc outputs Print log returned from the function
-func (g *Glg) PrintFunc(f func() string) error {
+func (g *Glg) PrintFunc(f func() string) {
 	if g.isModeEnable(PRINT) {
-		return g.out(PRINT, "%s", f())
+		g.out(PRINT, "%s", f())
 	}
-	return nil
+
 }
 
 // Print outputs Print log
-func Print(val ...interface{}) error {
-	return glg.out(PRINT, glg.blankFormat(len(val)), val...)
+func Print(val ...interface{}) {
+	glg.out(PRINT, glg.blankFormat(len(val)), val...)
 }
 
 // Println outputs fixed line Print log
-func Println(val ...interface{}) error {
-	return glg.out(PRINT, glg.blankFormat(len(val)), val...)
+func Println(val ...interface{}) {
+	glg.out(PRINT, glg.blankFormat(len(val)), val...)
 }
 
 // Printf outputs formatted Print log
-func Printf(format string, val ...interface{}) error {
-	return glg.out(PRINT, format, val...)
+func Printf(format string, val ...interface{}) {
+	glg.out(PRINT, format, val...)
 }
 
 // PrintFunc outputs Print log returned from the function
-func PrintFunc(f func() string) error {
+func PrintFunc(f func() string) {
 	if isModeEnable(PRINT) {
-		return glg.out(PRINT, "%s", f())
+		glg.out(PRINT, "%s", f())
 	}
-	return nil
+
 }
 
 // Error outputs Error log
-func (g *Glg) Error(val ...interface{}) error {
-	return g.out(ERR, g.blankFormat(len(val)), val...)
+func (g *Glg) Error(val ...interface{}) {
+	g.out(ERR, g.blankFormat(len(val)), val...)
 }
 
 // Errorf outputs formatted Error log
-func (g *Glg) Errorf(format string, val ...interface{}) error {
-	return g.out(ERR, format, val...)
+func (g *Glg) Errorf(format string, val ...interface{}) {
+	g.out(ERR, format, val...)
 }
 
 // ErrorFunc outputs Error level log returned from the function
-func (g *Glg) ErrorFunc(f func() string) error {
+func (g *Glg) ErrorFunc(f func() string) {
 	if g.isModeEnable(ERR) {
-		return g.out(ERR, "%s", f())
+		g.out(ERR, "%s", f())
 	}
-	return nil
+
 }
 
 // Error outputs Error log
-func Error(val ...interface{}) error {
-	return glg.out(ERR, glg.blankFormat(len(val)), val...)
+func Error(val ...interface{}) {
+	glg.out(ERR, glg.blankFormat(len(val)), val...)
 }
 
 // Errorf outputs formatted Error log
-func Errorf(format string, val ...interface{}) error {
-	return glg.out(ERR, format, val...)
+func Errorf(format string, val ...interface{}) {
+	glg.out(ERR, format, val...)
 }
 
 // ErrorFunc outputs Error level log returned from the function
-func ErrorFunc(f func() string) error {
+func ErrorFunc(f func() string) {
 	if isModeEnable(ERR) {
-		return glg.out(ERR, "%s", f())
+		glg.out(ERR, "%s", f())
 	}
-	return nil
+
 }
 
 // Fail outputs Failed log
-func (g *Glg) Fail(val ...interface{}) error {
-	return g.out(FAIL, g.blankFormat(len(val)), val...)
+func (g *Glg) Fail(val ...interface{}) {
+	g.out(FAIL, g.blankFormat(len(val)), val...)
 }
 
 // Failf outputs formatted Failed log
-func (g *Glg) Failf(format string, val ...interface{}) error {
-	return g.out(FAIL, format, val...)
+func (g *Glg) Failf(format string, val ...interface{}) {
+	g.out(FAIL, format, val...)
 }
 
 // FailFunc outputs Fail level log returned from the function
-func (g *Glg) FailFunc(f func() string) error {
+func (g *Glg) FailFunc(f func() string) {
 	if g.isModeEnable(FAIL) {
-		return g.out(FAIL, "%s", f())
+		g.out(FAIL, "%s", f())
 	}
-	return nil
+
 }
 
 // Fail outputs Failed log
-func Fail(val ...interface{}) error {
-	return glg.out(FAIL, glg.blankFormat(len(val)), val...)
+func Fail(val ...interface{}) {
+	glg.out(FAIL, glg.blankFormat(len(val)), val...)
 }
 
 // Failf outputs formatted Failed log
-func Failf(format string, val ...interface{}) error {
-	return glg.out(FAIL, format, val...)
+func Failf(format string, val ...interface{}) {
+	glg.out(FAIL, format, val...)
 }
 
 // FailFunc outputs Fail level log returned from the function
-func FailFunc(f func() string) error {
+func FailFunc(f func() string) {
 	if isModeEnable(FAIL) {
-		return glg.out(FAIL, "%s", f())
+		glg.out(FAIL, "%s", f())
 	}
-	return nil
+
 }
 
 // ReplaceExitFunc replaces exit function.
