@@ -1,4 +1,4 @@
-module github.com/MinoIC/glgf
+module github.com/minoic/glgf
 
 go 1.14
 
