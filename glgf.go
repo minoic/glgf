@@ -703,8 +703,7 @@ func (g *Glg) out(level LEVEL, format string, val ...interface{}) {
 	b.Write(fastime.FormattedNow())
 	_, fn, ln, _ := runtime.Caller(2)
 	parts := strings.Split(fn, "/")
-	fn = parts[len(parts)-1]
-	b.WriteString(fmt.Sprintf("| %20s | [", fmt.Sprintf("%s:%d", fn, ln)))
+	b.WriteString(fmt.Sprintf("| %20s | [", fmt.Sprintf("%s:%d", parts[len(parts)-2]+"/"+parts[len(parts)-1], ln)))
 	b.WriteString(log.tag)
 	b.WriteString(sep)
 	b.WriteString(format)
