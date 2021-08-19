@@ -1,6 +1,6 @@
 package main
 
-import "github.com/MinoIC/glgf"
+import "github.com/minoic/glgf"
 
 func main() {
 	glgf.Info("This Message is Info")
