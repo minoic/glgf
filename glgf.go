@@ -39,6 +39,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/kpango/fastime"
+    "github.com/jwalton/go-supportscolor"
 )
 
 // Glg is glg base struct
@@ -255,7 +256,9 @@ func New() *Glg {
 		log.updateMode()
 		g.logger.Store(lev, log)
 	}
-
+    if !supportscolor.Stdout().SupportsColor {
+		g.DisableColor()
+	}
 	return g
 }
 
